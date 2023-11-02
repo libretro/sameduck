@@ -54,25 +54,10 @@ CORE_DIR     = ../
 TARGET_NAME  = sameduck
 LIBM		    = -lm
 
-ifeq ($(ARCHFLAGS),)
-ifeq ($(archs),ppc)
-   ARCHFLAGS = -arch ppc -arch ppc64
-else
-   ARCHFLAGS = -arch i386 -arch x86_64
-endif
-endif
-
 ifneq ($(SANITIZER),)
    CFLAGS   := -fsanitize=$(SANITIZER) $(CFLAGS)
    CXXFLAGS := -fsanitize=$(SANITIZER) $(CXXFLAGS)
    LDFLAGS  := -fsanitize=$(SANITIZER) $(LDFLAGS) -lasan
-endif
-
-ifeq ($(platform), osx)
-ifndef ($(NOUNIVERSAL))
-   CFLAGS += $(ARCHFLAGS)
-   LFLAGS += $(ARCHFLAGS)
-endif
 endif
 
 ifeq ($(STATIC_LINKING), 1)
@@ -147,6 +132,14 @@ else ifneq (,$(findstring osx,$(platform)))
    TARGET := $(TARGET_NAME)_libretro.dylib
    fpic := -fPIC
    SHARED := -dynamiclib
+
+   ifeq ($(CROSS_COMPILE),1)
+        TARGET_RULE   = -target $(LIBRETRO_APPLE_PLATFORM) -isysroot $(LIBRETRO_APPLE_ISYSROOT)
+        CFLAGS   += $(TARGET_RULE)
+        CPPFLAGS += $(TARGET_RULE)
+        CXXFLAGS += $(TARGET_RULE)
+        LDFLAGS  += $(TARGET_RULE)
+   endif
 else ifneq (,$(findstring ios,$(platform)))
    TARGET := $(TARGET_NAME)_libretro_ios.dylib
 	fpic := -fPIC
@@ -158,7 +151,7 @@ endif
 
 	DEFINES := -DIOS
 ifeq ($(platform),ios-arm64)
-   CC = cc -arch armv64 -isysroot $(IOSSDK)
+   CC = cc -arch arm64 -isysroot $(IOSSDK)
 else
 	CC = cc -arch armv7 -isysroot $(IOSSDK)
 endif
@@ -169,6 +162,18 @@ else
 CC     += -miphoneos-version-min=5.0
 CFLAGS += -miphoneos-version-min=5.0
 endif
+else ifneq (,$(findstring tvos,$(platform)))
+   TARGET := $(TARGET_NAME)_libretro_tvos.dylib
+	fpic := -fPIC
+	SHARED := -dynamiclib
+
+ifeq ($(TVOSSDK),)
+   TVOSSDK := $(shell xcodebuild -version -sdk appletvos Path)
+endif
+
+	DEFINES := -DIOS -DTVOS
+   CC = cc -arch arm64 -isysroot $(TVOSSDK)
+
 else ifneq (,$(findstring qnx,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro_qnx.so
    fpic := -fPIC
