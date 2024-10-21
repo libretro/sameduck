@@ -173,6 +173,8 @@ endif
 
 	DEFINES := -DIOS -DTVOS
    CC = cc -arch arm64 -isysroot $(TVOSSDK)
+   CC     += -mappletvos-version-min=11.0
+   CFLAGS += -mappletvos-version-min=11.0
 
 else ifneq (,$(findstring qnx,$(platform)))
 	TARGET := $(TARGET_NAME)_libretro_qnx.so
